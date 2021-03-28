@@ -1,4 +1,4 @@
-package cz.zcu.kiv.pgs.radl.sp1;
+package cz.zcu.kiv.pgs.radl.sp1.queryStaff;
 
 public class Block {
     final int blockSize;
