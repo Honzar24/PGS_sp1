@@ -4,7 +4,7 @@ import cz.zcu.kiv.pgs.radl.sp1.Main;
 import org.apache.logging.log4j.Logger;
 
 public class SaveResourceContainer implements ResourceContainer {
-    public static final Logger LOGGER = Main.LOGGER;
+    public static final Logger LOGGER = Main.logger;
     public final int capacity;
     private final String name;
 

@@ -3,7 +3,7 @@ package cz.zcu.kiv.pgs.radl.sp1.queryStaff;
 import cz.zcu.kiv.pgs.radl.sp1.containers.SaveResourceContainer;
 
 public class Block extends SaveResourceContainer {
-    private static int instanceCount = 0;
+    private static int instanceCount;
 
     public Block(int blockSize) {
         super(blockSize, "Query block " + (++instanceCount));

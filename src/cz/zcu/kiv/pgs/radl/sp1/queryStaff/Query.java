@@ -1,7 +1,7 @@
 package cz.zcu.kiv.pgs.radl.sp1.queryStaff;
 
 import cz.zcu.kiv.pgs.radl.sp1.Destination;
-import cz.zcu.kiv.pgs.radl.sp1.FileLoader;
+import cz.zcu.kiv.pgs.radl.sp1.FileLoaderUtils;
 
 public class Query implements Destination {
 
@@ -22,6 +22,6 @@ public class Query implements Destination {
     }
 
     public String[] getMap() {
-        return FileLoader.loadFile(mapFile);
+        return FileLoaderUtils.loadFile(mapFile);
     }
 }

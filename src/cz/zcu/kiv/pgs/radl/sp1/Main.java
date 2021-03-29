@@ -13,8 +13,11 @@ import java.util.HashMap;
 
 public class Main {
 
-    static final private String help = "-i <vstupni soubor> -o <vystupni soubor> -cWorker <int> -tWorker <int> -capLorry <int> -tLorry <int> -capFerry <int>";
-    public static Logger LOGGER;
+    static final private String HELP = "-i <vstupni soubor> -o <vystupni soubor> -cWorker <int> -tWorker <int> -capLorry <int> -tLorry <int> -capFerry <int>";
+    public static Logger logger;
+
+    private Main() {
+    }
 
     public static void main(String[] args) {
         System.out.println("Arguments: " + Arrays.toString(args));
@@ -25,7 +28,7 @@ public class Main {
         String[] required = {"-i", "-o", "-cWorker", "-tWorker", "-capLorry", "-tLorry", "-capFerry"};
         for (String s : required) {
             if (!arguments.containsKey(s)) {
-                System.out.printf("Missing parameter:%s please run program again with parameters: %s%n", s, help);
+                System.out.printf("Missing parameter:%s please run program again with parameters: %s%n", s, HELP);
                 return;
             }
         }
@@ -40,7 +43,7 @@ public class Main {
 
         System.setProperty("logFilename", outputFilename);
         System.setProperty("log4j.configurationFile", "log_config.xml");
-        LOGGER = LogManager.getLogger(Main.class);
+        logger = LogManager.getLogger(Main.class);
 
         Ferry.create(ferryCapacity / lorryCapacity);
         Lorry.setMaxTime(maxTimeLorry);

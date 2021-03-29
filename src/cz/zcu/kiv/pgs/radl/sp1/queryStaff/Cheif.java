@@ -6,14 +6,17 @@ import cz.zcu.kiv.pgs.radl.sp1.containers.Ferry;
 import cz.zcu.kiv.pgs.radl.sp1.containers.Lorry;
 import org.apache.logging.log4j.Logger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Cheif {
-    public static final Logger LOGGER = Main.LOGGER;
+    public static final Logger LOGGER = Main.logger;
 
     private final Queue<Block> blocks;
     private final Query query;
@@ -29,7 +32,7 @@ public class Cheif {
         runWorkers(numberOfWorkers);
     }
 
-    public static List<Block> parseMap(String[] lines) {
+    public static List<Block> parseMap(String... lines) {
         List<Block> blocks = new ArrayList<>();
         for (String line : lines) {
             Pattern pattern = Pattern.compile("x+");
@@ -49,12 +52,12 @@ public class Cheif {
         return lorryInQuery;
     }
 
-    public synchronized void prepareLorry() {
+    public final synchronized void prepareLorry() {
         lorryInQuery = new Lorry(query, Ferry.getInstance());
         new Thread(lorryInQuery).start();
     }
 
-    public synchronized Block giveWork() throws NoSuchElementException {
+    public synchronized Block giveWork() {
         return blocks.remove();
     }
 

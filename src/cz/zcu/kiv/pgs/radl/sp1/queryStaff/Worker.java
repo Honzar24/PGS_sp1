@@ -9,10 +9,11 @@ import java.util.Random;
 
 public class Worker implements Runnable, ResourceContainer {
 
-    public static final Logger LOGGER = Main.LOGGER;
+    public static final Logger LOGGER = Main.logger;
     public static final long S = 1_000_000_000L;
-    private static final Random rd = new Random();
-    private static int numberInstances = 0;
+    private static final Random RD = new Random();
+
+    private static int numberInstances;
     private static int maxMiningTime;
 
     private final int instanceNumber;
@@ -54,7 +55,7 @@ public class Worker implements Runnable, ResourceContainer {
 
     private void mineResource(Block block) {
         long start = System.nanoTime();
-        long miningTime = rd.nextInt(maxMiningTime) * S;
+        long miningTime = RD.nextInt(maxMiningTime) * S;
         LOGGER.trace(String.format("%s is mining resource estimated mining time %d s", getName(), miningTime / S));
         saveSleepTo(start + miningTime);
         load.transfer(block, 1);

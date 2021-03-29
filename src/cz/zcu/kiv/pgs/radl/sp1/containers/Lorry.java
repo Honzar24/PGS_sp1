@@ -8,13 +8,13 @@ import java.util.Random;
 
 public class Lorry implements Runnable, ResourceContainer {
 
-    private static final Random rd = new Random();
-    private static final Logger LOGGER = Main.LOGGER;
+    private static final Random RD = new Random();
+    private static final Logger LOGGER = Main.logger;
     public static final long S = 1_000_000_000L;
 
     private static int maxTime;
-    private static int CAPACITY;
-    private static int numberInstances = 0;
+    private static int capacity;
+    private static int numberInstances;
 
     private final int instanceNumber;
     private final Destination UnloadingSpot;
@@ -33,11 +33,11 @@ public class Lorry implements Runnable, ResourceContainer {
     }
 
     public Lorry(Destination loadingSpot, Destination unloadingSpot) {
-        this(loadingSpot, unloadingSpot, CAPACITY);
+        this(loadingSpot, unloadingSpot, capacity);
     }
 
     public static void setCapacity(int capacity) {
-        CAPACITY = capacity;
+        Lorry.capacity = capacity;
     }
 
     @Override
@@ -56,7 +56,7 @@ public class Lorry implements Runnable, ResourceContainer {
     private void tripTo(Destination destination) {
 
         long start = System.nanoTime();
-        long travelTime = rd.nextInt(maxTime) * S;
+        long travelTime = RD.nextInt(maxTime) * S;
         LOGGER.debug(String.format("%s is in %s going to %s estimated travel time %d s", this, currentLocation, destination, travelTime / S));
         saveSleepTo(start + travelTime);
         setCurrentLocation(destination, (System.nanoTime() - start) / S);
@@ -141,7 +141,7 @@ public class Lorry implements Runnable, ResourceContainer {
     }
 
     @Override
-    public String getName() {
+    public final String getName() {
         return String.format("Lorry %d", instanceNumber);
     }
 }
