@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+    <Properties>
+        <Property name="pFormat">[%level %d{ABSOLUTE_MICROS} %class{1} %T/%t] - %msg%n</Property>
+    </Properties>
+
+    <Filters>
+
+    </Filters>
+
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${pFormat}"/>
+        </Console>
+
+        <File name="log" fileName="${sys:logFilename}" immediateFlush="true" append="false">
+            <PatternLayout pattern="${pFormat}"/>
+        </File>
+
+    </Appenders>
+    <Loggers>
+        <Root level="ALL">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="log"/>
+        </Root>
+    </Loggers>
+</Configuration>

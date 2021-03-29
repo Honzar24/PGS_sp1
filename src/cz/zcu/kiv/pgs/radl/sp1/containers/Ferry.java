@@ -5,12 +5,15 @@ import cz.zcu.kiv.pgs.radl.sp1.Destination;
 import java.util.concurrent.CyclicBarrier;
 
 public class Ferry implements Destination {
+
+
     private static Ferry instance;
 
-    private CyclicBarrier barrier;
+    private final CyclicBarrier barrier;
 
     private Ferry(int numberOfLorries) {
         barrier = new CyclicBarrier(numberOfLorries,() -> System.out.println("Ferry barrier"));
+        //TODO
     }
 
     public static void create(int numberOfLorries)

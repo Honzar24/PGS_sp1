@@ -1,10 +1,14 @@
 package cz.zcu.kiv.pgs.radl.sp1.queryStaff;
 
 import cz.zcu.kiv.pgs.radl.sp1.Destination;
+import cz.zcu.kiv.pgs.radl.sp1.FileLoader;
 
 public class Query implements Destination {
-    public Query(Cheif cheif) {
 
+    private final String mapFile;
+
+    public Query(String inputFilename) {
+        mapFile = inputFilename;
     }
 
     @Override
@@ -15,5 +19,9 @@ public class Query implements Destination {
     @Override
     public String getName() {
         return toString();
+    }
+
+    public String[] getMap() {
+        return FileLoader.loadFile(mapFile);
     }
 }

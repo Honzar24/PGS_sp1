@@ -1,17 +1,20 @@
 package cz.zcu.kiv.pgs.radl.sp1.containers;
 
 import cz.zcu.kiv.pgs.radl.sp1.Destination;
+import cz.zcu.kiv.pgs.radl.sp1.Main;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Random;
 
 public class Lorry implements Runnable, ResourceContainer {
 
     private static final Random rd = new Random();
+    private static final Logger LOGGER = Main.LOGGER;
     public static final long S = 1_000_000_000L;
 
     private static int maxTime;
+    private static int CAPACITY;
     private static int numberInstances = 0;
-
 
     private final int instanceNumber;
     private final Destination UnloadingSpot;
@@ -26,12 +29,15 @@ public class Lorry implements Runnable, ResourceContainer {
         LoadingSpot = loadingSpot;
         UnloadingSpot = unloadingSpot;
         instanceNumber = ++numberInstances;
-        load = new SaveResourceContainer(capacity,String.format("Lorry %d cargo",instanceNumber));
+        load = new SaveResourceContainer(capacity, String.format(getName() + " cargo", instanceNumber));
     }
 
-    @Override
-    public String toString() {
-        return String.format("Lorry %d (%d/%d)", instanceNumber, load.getResourceCount(), load.capacity);
+    public Lorry(Destination loadingSpot, Destination unloadingSpot) {
+        this(loadingSpot, unloadingSpot, CAPACITY);
+    }
+
+    public static void setCapacity(int capacity) {
+        CAPACITY = capacity;
     }
 
     @Override
@@ -43,43 +49,46 @@ public class Lorry implements Runnable, ResourceContainer {
     }
 
     private void ferryRide(Ferry ferry) {
-
+        //TODO
     }
 
 
     private void tripTo(Destination destination) {
 
+        long start = System.nanoTime();
         long travelTime = rd.nextInt(maxTime) * S;
-        long end = System.nanoTime() + travelTime;
-        System.out.println(this + " is in " + currentLocation + " traveling to " + destination.getName() +" estimated travel time " + travelTime/S +" s");
-        saveSleapTo(end);
-        setCurrentLocation(destination);
+        LOGGER.debug(String.format("%s is in %s going to %s estimated travel time %d s", this, currentLocation, destination, travelTime / S));
+        saveSleepTo(start + travelTime);
+        setCurrentLocation(destination, (System.nanoTime() - start) / S);
     }
 
-    public void setCurrentLocation(Destination newLocation) {
+    public void setCurrentLocation(Destination newLocation, long travelTime) {
         this.currentLocation = newLocation;
-        System.out.printf("%s on new location %s%n",this,currentLocation);
+        LOGGER.info(String.format("%s is on new location %s travel time %d s", this, currentLocation, travelTime));
     }
 
-    private synchronized void saveSleapTo(long end) {
+    private synchronized void saveSleepTo(long end) {
         do {
             try {
+                //noinspection BusyWait
                 Thread.sleep(1);
             } catch (InterruptedException e) {
-                // unexpected interruption
+                LOGGER.trace("unexpected interruption");
             }
         } while (System.nanoTime() < end);
     }
 
     private synchronized void loading() {
-        while (!load.isFull()){
+        long startOfLoading = System.nanoTime();
+        while (!load.isFull()) {
             try {
                 wait();
             } catch (InterruptedException e) {
-                // unexpected interruption
+                LOGGER.trace("unexpected interruption");
             }
         }
-        System.out.println(this + " is loaded");
+        long end = System.nanoTime() - startOfLoading;
+        LOGGER.info(String.format("%s is loaded with %d after %d s", this, load.getResourceCount(), end / S));
     }
 
     public static void setMaxTime(int maxTime) {
@@ -118,10 +127,8 @@ public class Lorry implements Runnable, ResourceContainer {
 
     @Override
     public synchronized boolean transfer(ResourceContainer from, int amount) {
-        if(load.transfer(from,amount))
-        {
-            saveSleapTo(System.nanoTime() + S);
-            System.out.println(this +" form "+ from);
+        if (load.transfer(from, amount)) {
+            saveSleepTo(System.nanoTime() + S);
             notifyAll();
             return true;
         }
@@ -129,7 +136,12 @@ public class Lorry implements Runnable, ResourceContainer {
     }
 
     @Override
+    public String toString() {
+        return String.format("Lorry %d (%d/%d)", instanceNumber, load.getResourceCount(), load.capacity);
+    }
+
+    @Override
     public String getName() {
-        return toString();
+        return String.format("Lorry %d", instanceNumber);
     }
 }

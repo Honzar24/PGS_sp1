@@ -1,23 +1,17 @@
 package cz.zcu.kiv.pgs.radl.sp1.queryStaff;
 
-public class Block {
-    final int blockSize;
-    int available;
+import cz.zcu.kiv.pgs.radl.sp1.containers.SaveResourceContainer;
+
+public class Block extends SaveResourceContainer {
+    private static int instanceCount = 0;
 
     public Block(int blockSize) {
-        this.blockSize = blockSize;
-        available = blockSize;
+        super(blockSize, "Query block " + (++instanceCount));
+        add(blockSize);
     }
 
     public int getBlockSize() {
-        return blockSize;
+        return capacity;
     }
 
-    @Override
-    public String toString() {
-        return "Block{" +
-                "blockSize=" + blockSize +
-                ", available=" + available +
-                '}';
-    }
 }

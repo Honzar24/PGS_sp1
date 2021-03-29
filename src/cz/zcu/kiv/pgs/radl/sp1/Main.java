@@ -2,27 +2,28 @@ package cz.zcu.kiv.pgs.radl.sp1;
 
 import cz.zcu.kiv.pgs.radl.sp1.containers.Ferry;
 import cz.zcu.kiv.pgs.radl.sp1.containers.Lorry;
-import cz.zcu.kiv.pgs.radl.sp1.containers.ResourceContainer;
-import cz.zcu.kiv.pgs.radl.sp1.containers.SaveResourceContainer;
 import cz.zcu.kiv.pgs.radl.sp1.queryStaff.Cheif;
 import cz.zcu.kiv.pgs.radl.sp1.queryStaff.Query;
+import cz.zcu.kiv.pgs.radl.sp1.queryStaff.Worker;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Arrays;
 import java.util.HashMap;
 
 public class Main {
 
+    static final private String help = "-i <vstupni soubor> -o <vystupni soubor> -cWorker <int> -tWorker <int> -capLorry <int> -tLorry <int> -capFerry <int>";
+    public static Logger LOGGER;
 
-    static  final private String help = "-i <vstupni soubor> -o <vystupni soubor> -cWorker <int> -tWorker <int> -capLorry <int> -tLorry <int> -capFerry <int>";
     public static void main(String[] args) {
         System.out.println("Arguments: " + Arrays.toString(args));
         HashMap<String, Integer> arguments = new HashMap<>();
         for (int i = 0; i < args.length; i++) {
             arguments.put(args[i], i);
         }
-        String[] required = {"-i","-o","-cWorker","-tWorker","-capLorry","-tLorry","-capFerry"};
-        for (String s:required)
-        {
+        String[] required = {"-i", "-o", "-cWorker", "-tWorker", "-capLorry", "-tLorry", "-capFerry"};
+        for (String s : required) {
             if (!arguments.containsKey(s)) {
                 System.out.printf("Missing parameter:%s please run program again with parameters: %s%n", s, help);
                 return;
@@ -37,39 +38,18 @@ public class Main {
         int maxTimeLorry = Integer.parseInt(args[arguments.get("-tLorry") + 1]);
         int ferryCapacity = Integer.parseInt(args[arguments.get("-capFerry") + 1]);
 
+        System.setProperty("logFilename", outputFilename);
+        System.setProperty("log4j.configurationFile", "log_config.xml");
+        LOGGER = LogManager.getLogger(Main.class);
 
-
-        Ferry.create(ferryCapacity/lorryCapacity);
-
+        Ferry.create(ferryCapacity / lorryCapacity);
         Lorry.setMaxTime(maxTimeLorry);
+        Lorry.setCapacity(lorryCapacity);
+        Worker.setMaxMiningTime(maxTimeWorker);
 
-        Query query = new Query(new Cheif(inputFilename, workerCount));
+        Query query = new Query(inputFilename);
+        Cheif cheif = new Cheif(workerCount, query);
 
-
-        ResourceContainer container = new SaveResourceContainer(100,"1");
-        container.add(100);
-        ResourceContainer container3 = new SaveResourceContainer(100,"3");
-        container3.add(100);
-
-        Lorry lorry = new Lorry(query,Ferry.getInstance(), 20);
-        ResourceContainer container2 = lorry;
-
-        new Thread(()->{while (!container2.isFull()){
-            System.out.printf("%b from %s%n",container2.transfer(container,1),container);
-        }
-            System.out.println(container);
-        }).start();
-        new Thread(()->{while (!container2.isFull()){
-            System.out.printf("%b from %s%n",container2.transfer(container,1),container);
-        }
-            System.out.println(container);
-        }).start();
-        new Thread(()->{while (!container2.isFull()){
-            System.out.printf("%b from %s%n",container2.transfer(container3,1),container3);
-        }
-            System.out.println(container3);
-        }).start();
-        new Thread(lorry).start();
 
     }
 }

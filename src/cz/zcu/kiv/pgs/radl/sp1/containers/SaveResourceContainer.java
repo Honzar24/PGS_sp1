@@ -1,11 +1,14 @@
 package cz.zcu.kiv.pgs.radl.sp1.containers;
 
+import cz.zcu.kiv.pgs.radl.sp1.Main;
+import org.apache.logging.log4j.Logger;
+
 public class SaveResourceContainer implements ResourceContainer {
+    public static final Logger LOGGER = Main.LOGGER;
     public final int capacity;
+    private final String name;
 
     private int resourceCount;
-
-    private String name;
 
     public SaveResourceContainer(int capacity, String name) {
         this.capacity = capacity;
@@ -25,6 +28,7 @@ public class SaveResourceContainer implements ResourceContainer {
         if ((resourceCount + count) <= capacity)
         {
             resourceCount += count;
+            LOGGER.trace(String.format("%s added %d resources", getName(), count));
             return;
         }
         String format = "Container capacity is insufficient. Capacity:%d Amount:%d In container:%d";
@@ -44,6 +48,7 @@ public class SaveResourceContainer implements ResourceContainer {
         isPositive(count);
         if ((resourceCount - count) >= 0) {
             resourceCount -= count;
+            LOGGER.trace(String.format("%s removed %d resources", getName(), count));
             return count;
         }
         String format = "Container content is insufficient.Trying to remove:%d In container:%d";
@@ -80,9 +85,10 @@ public class SaveResourceContainer implements ResourceContainer {
         try {
             removed = from.remove(amount);
             add(removed);
-            System.out.printf("Transferred %d from %s to %s%n",removed,from,this);
+            LOGGER.trace(String.format("Transferred %d resource from %s to %s", removed, from.getName(), this.getName()));
             return true;
         } catch (IllegalArgumentException e) {
+            LOGGER.error(e.getMessage());
             from.add(removed);
         }
         return false;
@@ -90,7 +96,7 @@ public class SaveResourceContainer implements ResourceContainer {
 
     @Override
     public String toString() {
-        return String.format("Container %s (%d/%d)",getName(), getResourceCount(),capacity);
+        return String.format("%s (%d/%d)", getName(), getResourceCount(), capacity);
     }
 
     @Override
