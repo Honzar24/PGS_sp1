@@ -19,19 +19,19 @@ public final class FileLoaderUtils {
     public static String[] loadFile(String filename) {
         try {
             LOGGER.trace("Loading " + filename);
-            InputStream resourceAsStream = FileLoaderUtils.class.getClassLoader().getResourceAsStream(filename);
+            InputStream resourceAsStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(filename);
             if (resourceAsStream == null) {
                 LOGGER.debug(filename + " not found in res loading from current dir");
                 resourceAsStream = Files.newInputStream(Paths.get(filename));
             }
             Stream<String> lines = new BufferedReader(new InputStreamReader(resourceAsStream)).lines();
-            resourceAsStream.close();
             LOGGER.trace("returning lines");
             String[] ret = lines.toArray(String[]::new);
+            resourceAsStream.close();
             lines.close();
             return ret;
         } catch (IOException e) {
-            LOGGER.error(e.getMessage());
+            LOGGER.error(e);
         }
         LOGGER.trace("returning empty list");
         return new String[]{};

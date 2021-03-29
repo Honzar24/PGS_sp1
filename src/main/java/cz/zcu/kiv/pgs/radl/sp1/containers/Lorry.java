@@ -5,12 +5,15 @@ import cz.zcu.kiv.pgs.radl.sp1.Main;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Random;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 
 public class Lorry implements Runnable, ResourceContainer {
 
+    public static final long S = Main.S;
+
     private static final Random RD = new Random();
     private static final Logger LOGGER = Main.logger;
-    public static final long S = 1_000_000_000L;
 
     private static int maxTime;
     private static int capacity;
@@ -22,6 +25,7 @@ public class Lorry implements Runnable, ResourceContainer {
     private final SaveResourceContainer load;
 
     private Destination currentLocation;
+    private boolean canLoad;
 
 
     public Lorry(Destination loadingSpot, Destination unloadingSpot, int capacity) {
@@ -30,6 +34,8 @@ public class Lorry implements Runnable, ResourceContainer {
         UnloadingSpot = unloadingSpot;
         instanceNumber = ++numberInstances;
         load = new SaveResourceContainer(capacity, String.format(getName() + " cargo", instanceNumber));
+        canLoad = true;
+        LOGGER.trace(String.format("New %s created", getName()));
     }
 
     public Lorry(Destination loadingSpot, Destination unloadingSpot) {
@@ -46,17 +52,27 @@ public class Lorry implements Runnable, ResourceContainer {
         tripTo(UnloadingSpot);
         ferryRide(Ferry.getInstance());
         tripTo(LoadingSpot);
+        LOGGER.debug(getName() + " done");
     }
 
     private void ferryRide(Ferry ferry) {
-        //TODO
+        try {
+            CyclicBarrier barrier = ferry.getBarrier();
+            LOGGER.debug(String.format("%s arrived at ferry there is %d/%d lorries waiting", getName(), barrier.getNumberWaiting(), barrier.getParties()));
+            barrier.await();
+            ferry.transfer(load, load.getResourceCount());
+            LOGGER.debug(String.format("%s leaving ferry", getName()));
+        } catch (InterruptedException e) {
+            ferryRide(ferry);
+        } catch (BrokenBarrierException e) {
+            LOGGER.error(e.getMessage());
+        }
     }
 
 
     private void tripTo(Destination destination) {
-
         long start = System.nanoTime();
-        long travelTime = RD.nextInt(maxTime) * S;
+        long travelTime = (RD.nextInt(maxTime - 1) + 1) * S;
         LOGGER.debug(String.format("%s is in %s going to %s estimated travel time %d s", this, currentLocation, destination, travelTime / S));
         saveSleepTo(start + travelTime);
         setCurrentLocation(destination, (System.nanoTime() - start) / S);
@@ -80,7 +96,7 @@ public class Lorry implements Runnable, ResourceContainer {
 
     private synchronized void loading() {
         long startOfLoading = System.nanoTime();
-        while (!load.isFull()) {
+        while ((!load.isFull()) && canLoad) {
             try {
                 wait();
             } catch (InterruptedException e) {
@@ -88,7 +104,7 @@ public class Lorry implements Runnable, ResourceContainer {
             }
         }
         long end = System.nanoTime() - startOfLoading;
-        LOGGER.info(String.format("%s is loaded with %d after %d s", this, load.getResourceCount(), end / S));
+        LOGGER.info(String.format("%s is loaded with %d after %d s", getName(), load.getResourceCount(), end / S));
     }
 
     public static void setMaxTime(int maxTime) {
@@ -143,5 +159,11 @@ public class Lorry implements Runnable, ResourceContainer {
     @Override
     public final String getName() {
         return String.format("Lorry %d", instanceNumber);
+    }
+
+    public synchronized void forceRide() {
+        LOGGER.debug(getName() + " is forced to stop loading");
+        canLoad = false;
+        notifyAll();
     }
 }

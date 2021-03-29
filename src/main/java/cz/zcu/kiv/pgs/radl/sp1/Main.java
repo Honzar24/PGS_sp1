@@ -2,7 +2,7 @@ package cz.zcu.kiv.pgs.radl.sp1;
 
 import cz.zcu.kiv.pgs.radl.sp1.containers.Ferry;
 import cz.zcu.kiv.pgs.radl.sp1.containers.Lorry;
-import cz.zcu.kiv.pgs.radl.sp1.queryStaff.Cheif;
+import cz.zcu.kiv.pgs.radl.sp1.queryStaff.Chief;
 import cz.zcu.kiv.pgs.radl.sp1.queryStaff.Query;
 import cz.zcu.kiv.pgs.radl.sp1.queryStaff.Worker;
 import org.apache.logging.log4j.LogManager;
@@ -11,9 +11,11 @@ import org.apache.logging.log4j.Logger;
 import java.util.Arrays;
 import java.util.HashMap;
 
-public class Main {
+public final class Main {
+    public static final long S = 1_000_000L;
 
-    static final private String HELP = "-i <vstupni soubor> -o <vystupni soubor> -cWorker <int> -tWorker <int> -capLorry <int> -tLorry <int> -capFerry <int>";
+    private static final String HELP = "-i <vstupni soubor> -o <vystupni soubor> -cWorker <int> -tWorker <int> -capLorry <int> -tLorry <int> -capFerry <int>";
+
     public static Logger logger;
 
     private Main() {
@@ -48,11 +50,14 @@ public class Main {
         Ferry.create(ferryCapacity / lorryCapacity);
         Lorry.setMaxTime(maxTimeLorry);
         Lorry.setCapacity(lorryCapacity);
-        Worker.setMaxMiningTime(maxTimeWorker);
+        Worker.setDefaultMiningTime(maxTimeWorker);
 
         Query query = new Query(inputFilename);
-        Cheif cheif = new Cheif(workerCount, query);
+        Chief chief = new Chief(workerCount, query);
 
-
+        chief.waitUntilWorkDone();
+        chief.logProductivity();
+        logger.info("Ferry transported {} of resource to other side of river", Ferry.getInstance().getResourceCount());
+        logger.info("End");
     }
 }

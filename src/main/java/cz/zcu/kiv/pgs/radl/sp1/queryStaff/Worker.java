@@ -1,6 +1,7 @@
 package cz.zcu.kiv.pgs.radl.sp1.queryStaff;
 
 import cz.zcu.kiv.pgs.radl.sp1.Main;
+import cz.zcu.kiv.pgs.radl.sp1.containers.Lorry;
 import cz.zcu.kiv.pgs.radl.sp1.containers.ResourceContainer;
 import cz.zcu.kiv.pgs.radl.sp1.containers.SaveResourceContainer;
 import org.apache.logging.log4j.Logger;
@@ -10,35 +11,51 @@ import java.util.Random;
 public class Worker implements Runnable, ResourceContainer {
 
     public static final Logger LOGGER = Main.logger;
-    public static final long S = 1_000_000_000L;
+    public static final long S = Main.S;
+
     private static final Random RD = new Random();
 
     private static int numberInstances;
-    private static int maxMiningTime;
+    private static int defaultMiningTime;
 
-    private final int instanceNumber;
-    private final Cheif cheif;
+    public final int instanceNumber;
+    public final int maxMiningTime;
+    public final Chief chief;
     private final ResourceContainer load;
 
-    public Worker(Cheif cheif) {
-        this.cheif = cheif;
+    public Worker(Chief chief, int maxMiningTime) {
         instanceNumber = ++numberInstances;
+        this.maxMiningTime = maxMiningTime;
+        this.chief = chief;
         load = new SaveResourceContainer(Integer.MAX_VALUE, String.format("Worker %d backpack", instanceNumber));
+        LOGGER.trace(String.format("New %s created with %d max mining time", getName(), maxMiningTime));
     }
 
-    public static void setMaxMiningTime(int maxMiningTime) {
-        Worker.maxMiningTime = maxMiningTime;
+    public Worker(Chief chief) {
+        this(chief, defaultMiningTime);
+    }
+
+    public static void setDefaultMiningTime(int defaultMiningTime) {
+        Worker.defaultMiningTime = defaultMiningTime;
     }
 
     @Override
     public void run() {
-        while (cheif.hasWork()) {
-            Block block = cheif.giveWork();
+        int resourceMined = 0;
+        while (chief.hasWork()) {
+            Block block = chief.giveWork();
             LOGGER.trace(String.format("%s received %s to mine.", getName(), block));
             mineBlock(block);
-            //TODO Lorry load
+            resourceMined += load.getResourceCount();
+            while (!load.isEmpty()) {
+                Lorry lorry = chief.getLorryInQuery();
+                if (!lorry.isFull()) {
+                    lorry.transfer(this, 1);
+                }
+            }
         }
-        LOGGER.debug(getName() + " done");
+        chief.shiftEnd(this, resourceMined);
+        LOGGER.debug(String.format("%s done mined %d resources", getName(), resourceMined));
     }
 
     private void mineBlock(Block block) {
@@ -55,7 +72,7 @@ public class Worker implements Runnable, ResourceContainer {
 
     private void mineResource(Block block) {
         long start = System.nanoTime();
-        long miningTime = RD.nextInt(maxMiningTime) * S;
+        long miningTime = (RD.nextInt(maxMiningTime - 1) + 1) * S;
         LOGGER.trace(String.format("%s is mining resource estimated mining time %d s", getName(), miningTime / S));
         saveSleepTo(start + miningTime);
         load.transfer(block, 1);

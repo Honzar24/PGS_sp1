@@ -2,25 +2,21 @@
 <Configuration status="WARN">
 
     <Properties>
-        <Property name="pFormat">[%level %d{ABSOLUTE_MICROS} %class{1} %T/%t] - %msg%n</Property>
+        <Property name="pFormat">%-5level ts:%d r:%-10class{1} t:%-4T- %msg%n</Property>
     </Properties>
-
-    <Filters>
-
-    </Filters>
 
     <Appenders>
         <Console name="console" target="SYSTEM_OUT">
             <PatternLayout pattern="${pFormat}"/>
         </Console>
 
-        <File name="log" fileName="${sys:logFilename}" immediateFlush="true" append="false">
+        <RandomAccessFile name="log" fileName="${sys:logFilename}" immediateFlush="false" append="false">
             <PatternLayout pattern="${pFormat}"/>
-        </File>
+        </RandomAccessFile>
 
     </Appenders>
     <Loggers>
-        <Root level="ALL">
+        <Root level="Info">
             <AppenderRef ref="console"/>
             <AppenderRef ref="log"/>
         </Root>
