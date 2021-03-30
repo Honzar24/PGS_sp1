@@ -70,6 +70,11 @@ public class Chief {
         lorries.execute(lorryInQuery);
     }
 
+    /**
+     * Method for workers
+     *
+     * @return block that need to be mined.
+     */
     public synchronized Block giveWork() {
         return blocks.remove();
     }
@@ -84,15 +89,23 @@ public class Chief {
         return !blocks.isEmpty();
     }
 
+    /**
+     * Busy wait methode to wait after all block in query are done.
+     */
     public void waitUntilWorkDone() {
         waitUntilDone(workers);
-        if (lorryInQuery != null && !lorryInQuery.isFull()) {
+        if (lorryInQuery != null) {
             lorryInQuery.forceRide();
         }
         waitUntilDone(lorries);
         LOGGER.info("Job done");
     }
 
+    /**
+     * Busy wait for service task completion
+     *
+     * @param service
+     */
     private void waitUntilDone(ExecutorService service) {
         service.shutdown();
         while (!service.isTerminated()) {
@@ -105,7 +118,12 @@ public class Chief {
         }
     }
 
-
+    /**
+     * Workers call this methode to signalised that worker is done for today and his productivity can be logged.
+     *
+     * @param worker
+     * @param resourceMined
+     */
     public synchronized void shiftEnd(Worker worker, int resourceMined) {
         workersProductivity.add(new WorkerProductivity(worker, resourceMined));
     }

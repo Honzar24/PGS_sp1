@@ -7,6 +7,8 @@ import org.apache.logging.log4j.Logger;
 import java.util.Random;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class Lorry implements Runnable, ResourceContainer {
 
@@ -25,9 +27,7 @@ public class Lorry implements Runnable, ResourceContainer {
     private final SaveResourceContainer load;
 
     private Destination currentLocation;
-    private boolean canLoad;
-    private long startOfLoading;
-    private int recived;
+    private boolean canLoadAndNotLast;
 
 
     public Lorry(Destination loadingSpot, Destination unloadingSpot, int capacity) {
@@ -36,7 +36,7 @@ public class Lorry implements Runnable, ResourceContainer {
         UnloadingSpot = unloadingSpot;
         instanceNumber = ++numberInstances;
         load = new SaveResourceContainer(capacity, String.format(getName() + " cargo", instanceNumber));
-        canLoad = true;
+        canLoadAndNotLast = true;
         LOGGER.trace(String.format("New %s created", getName()));
     }
 
@@ -54,27 +54,39 @@ public class Lorry implements Runnable, ResourceContainer {
         tripTo(UnloadingSpot);
         ferryRide(Ferry.getInstance());
         tripTo(LoadingSpot);
-        LOGGER.debug(getName() + " done" + recived);
+        LOGGER.debug(getName() + " done");
     }
 
     private void ferryRide(Ferry ferry) {
         try {
             CyclicBarrier barrier = ferry.getBarrier();
             LOGGER.debug(String.format("%s arrived at ferry there is %d/%d lorries waiting", getName(), barrier.getNumberWaiting(), barrier.getParties()));
-            barrier.await();
-            ferry.transfer(load, load.getResourceCount());
-            LOGGER.debug(String.format("%s leaving ferry", getName()));
+            boolean last = (barrier.getNumberWaiting() + 1) == barrier.getParties();
+            if (last || canLoadAndNotLast) {
+                barrier.await();
+            } else {
+                LOGGER.info(String.format("Forced %s giving chance(%d s) too others lorries to finish their trips.", getName(), maxTime));
+                //Ensures that forced lorry is last lorry at barrier
+                saveSleepTo(System.nanoTime() + maxTime * S);
+                barrier.await(1000, TimeUnit.MILLISECONDS);
+            }
         } catch (InterruptedException e) {
-            LOGGER.error(e);
+            LOGGER.trace("unexpected interruption");
+            ferryRide(ferry);
         } catch (BrokenBarrierException e) {
-            LOGGER.error(e);
+            LOGGER.info("Barrier broke by last lorry hopefully. {} released", getName());
+        } catch (TimeoutException e) {
+            LOGGER.info("Forced lorry waited too long. Breaks barrier to prevent deadlock");
+            Ferry.getInstance().getBarrier().reset();
         }
+        LOGGER.debug(String.format("%s leaving ferry", getName()));
+        ferry.transfer(load, load.getResourceCount());
     }
 
 
     private void tripTo(Destination destination) {
         long start = System.nanoTime();
-        long travelTime = (RD.nextInt(maxTime - 1) + 1) * S;
+        long travelTime = (RD.nextInt(maxTime) + 1) * S;
         LOGGER.debug(String.format("%s is in %s going to %s estimated travel time %d s", getName(), currentLocation, destination, travelTime / S));
         saveSleepTo(start + travelTime);
         setCurrentLocation(destination, (System.nanoTime() - start) / S);
@@ -97,9 +109,9 @@ public class Lorry implements Runnable, ResourceContainer {
     }
 
     private void loading() {
-        startOfLoading = System.nanoTime();
+        long startOfLoading = System.nanoTime();
         synchronized (this) {
-            while ((!load.isFull()) && canLoad) {
+            while ((!load.isFull()) && canLoadAndNotLast) {
                 try {
                     wait();
                 } catch (InterruptedException e) {
@@ -142,7 +154,6 @@ public class Lorry implements Runnable, ResourceContainer {
 
     @Override
     public synchronized boolean transfer(ResourceContainer from, int amount) {
-        recived += amount;
         if (load.transfer(from, amount)) {
 
             saveSleepTo(System.nanoTime() + S);
@@ -162,9 +173,12 @@ public class Lorry implements Runnable, ResourceContainer {
         return String.format("Lorry %d", instanceNumber);
     }
 
+    /**
+     * This methode is called for last lorry this lorry have special role to break barrier
+     */
     public synchronized void forceRide() {
         LOGGER.info(getName() + " is forced to stop loading");
-        canLoad = false;
+        canLoadAndNotLast = false;
         notifyAll();
     }
 }

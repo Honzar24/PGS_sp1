@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 public final class Main {
-    public static final long S = 1_000_000L;
+    public static final long S = 1_000_000_000L;
 
     private static final String HELP = "-i <vstupni soubor> -o <vystupni soubor> -cWorker <int> -tWorker <int> -capLorry <int> -tLorry <int> -capFerry <int>";
 

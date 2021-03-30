@@ -17,7 +17,7 @@ public class SaveResourceContainer implements ResourceContainer {
     }
 
     public SaveResourceContainer(int capacity) {
-        this(capacity,"anonymous");
+        this(capacity, "anonymous container");
     }
 
     @Override
