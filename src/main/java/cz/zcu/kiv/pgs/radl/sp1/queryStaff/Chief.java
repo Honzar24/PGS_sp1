@@ -86,7 +86,7 @@ public class Chief {
 
     public void waitUntilWorkDone() {
         waitUntilDone(workers);
-        if (lorryInQuery != null) {
+        if (lorryInQuery != null && !lorryInQuery.isFull()) {
             lorryInQuery.forceRide();
         }
         waitUntilDone(lorries);

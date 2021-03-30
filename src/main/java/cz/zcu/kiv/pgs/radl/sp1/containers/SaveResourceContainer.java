@@ -8,7 +8,7 @@ public class SaveResourceContainer implements ResourceContainer {
     public final int capacity;
     private final String name;
 
-    private int resourceCount;
+    private volatile int resourceCount;
 
     public SaveResourceContainer(int capacity, String name) {
         this.capacity = capacity;
@@ -56,14 +56,6 @@ public class SaveResourceContainer implements ResourceContainer {
     }
 
     @Override
-    public synchronized int empty()
-    {
-        int count = this.resourceCount;
-        resourceCount = 0;
-        return count;
-    }
-
-    @Override
     public synchronized int getResourceCount() {
         return resourceCount;
     }
@@ -88,7 +80,7 @@ public class SaveResourceContainer implements ResourceContainer {
             LOGGER.trace(String.format("Transferred %d resource from %s to %s", removed, from.getName(), this.getName()));
             return true;
         } catch (IllegalArgumentException e) {
-            LOGGER.error(e.getMessage());
+            LOGGER.error(e);
             from.add(removed);
         }
         return false;

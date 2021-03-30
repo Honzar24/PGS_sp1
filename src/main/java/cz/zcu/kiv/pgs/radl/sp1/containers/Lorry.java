@@ -26,6 +26,8 @@ public class Lorry implements Runnable, ResourceContainer {
 
     private Destination currentLocation;
     private boolean canLoad;
+    private long startOfLoading;
+    private int recived;
 
 
     public Lorry(Destination loadingSpot, Destination unloadingSpot, int capacity) {
@@ -52,7 +54,7 @@ public class Lorry implements Runnable, ResourceContainer {
         tripTo(UnloadingSpot);
         ferryRide(Ferry.getInstance());
         tripTo(LoadingSpot);
-        LOGGER.debug(getName() + " done");
+        LOGGER.debug(getName() + " done" + recived);
     }
 
     private void ferryRide(Ferry ferry) {
@@ -63,9 +65,9 @@ public class Lorry implements Runnable, ResourceContainer {
             ferry.transfer(load, load.getResourceCount());
             LOGGER.debug(String.format("%s leaving ferry", getName()));
         } catch (InterruptedException e) {
-            ferryRide(ferry);
+            LOGGER.error(e);
         } catch (BrokenBarrierException e) {
-            LOGGER.error(e.getMessage());
+            LOGGER.error(e);
         }
     }
 
@@ -73,34 +75,36 @@ public class Lorry implements Runnable, ResourceContainer {
     private void tripTo(Destination destination) {
         long start = System.nanoTime();
         long travelTime = (RD.nextInt(maxTime - 1) + 1) * S;
-        LOGGER.debug(String.format("%s is in %s going to %s estimated travel time %d s", this, currentLocation, destination, travelTime / S));
+        LOGGER.debug(String.format("%s is in %s going to %s estimated travel time %d s", getName(), currentLocation, destination, travelTime / S));
         saveSleepTo(start + travelTime);
         setCurrentLocation(destination, (System.nanoTime() - start) / S);
     }
 
     public void setCurrentLocation(Destination newLocation, long travelTime) {
         this.currentLocation = newLocation;
-        LOGGER.info(String.format("%s is on new location %s travel time %d s", this, currentLocation, travelTime));
+        LOGGER.info(String.format("%s is on new location %s travel time %d s", getName(), currentLocation, travelTime));
     }
 
     private synchronized void saveSleepTo(long end) {
         do {
             try {
                 //noinspection BusyWait
-                Thread.sleep(1);
+                Thread.sleep(100);
             } catch (InterruptedException e) {
                 LOGGER.trace("unexpected interruption");
             }
         } while (System.nanoTime() < end);
     }
 
-    private synchronized void loading() {
-        long startOfLoading = System.nanoTime();
-        while ((!load.isFull()) && canLoad) {
-            try {
-                wait();
-            } catch (InterruptedException e) {
-                LOGGER.trace("unexpected interruption");
+    private void loading() {
+        startOfLoading = System.nanoTime();
+        synchronized (this) {
+            while ((!load.isFull()) && canLoad) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    LOGGER.trace("unexpected interruption");
+                }
             }
         }
         long end = System.nanoTime() - startOfLoading;
@@ -122,11 +126,6 @@ public class Lorry implements Runnable, ResourceContainer {
     }
 
     @Override
-    public synchronized int empty() {
-        return load.empty();
-    }
-
-    @Override
     public synchronized int getResourceCount() {
         return load.getResourceCount();
     }
@@ -143,7 +142,9 @@ public class Lorry implements Runnable, ResourceContainer {
 
     @Override
     public synchronized boolean transfer(ResourceContainer from, int amount) {
+        recived += amount;
         if (load.transfer(from, amount)) {
+
             saveSleepTo(System.nanoTime() + S);
             notifyAll();
             return true;
@@ -162,7 +163,7 @@ public class Lorry implements Runnable, ResourceContainer {
     }
 
     public synchronized void forceRide() {
-        LOGGER.debug(getName() + " is forced to stop loading");
+        LOGGER.info(getName() + " is forced to stop loading");
         canLoad = false;
         notifyAll();
     }

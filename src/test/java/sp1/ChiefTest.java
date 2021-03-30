@@ -1,7 +1,10 @@
-package cz.zcu.kiv.pgs.radl.sp1;
+package sp1;
 
+import cz.zcu.kiv.pgs.radl.sp1.Main;
 import cz.zcu.kiv.pgs.radl.sp1.queryStaff.Block;
 import cz.zcu.kiv.pgs.radl.sp1.queryStaff.Chief;
+import org.apache.logging.log4j.LogManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
 
@@ -10,6 +13,11 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ChiefTest {
+
+    @BeforeEach
+    void setUp() {
+        Main.logger = LogManager.getLogger();
+    }
 
     @ParameterizedTest(name = "{index}:nb:{1} data:{0}")
     @CsvFileSource(resources = "numberOfBlocks.csv", delimiter = ';', numLinesToSkip = 1)

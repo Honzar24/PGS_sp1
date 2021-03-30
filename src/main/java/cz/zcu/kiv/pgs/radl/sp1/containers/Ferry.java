@@ -69,11 +69,6 @@ public final class Ferry implements Destination, ResourceContainer {
     }
 
     @Override
-    public int empty() {
-        return storage.empty();
-    }
-
-    @Override
     public int getResourceCount() {
         return storage.getResourceCount();
     }

@@ -110,11 +110,6 @@ public class Worker implements Runnable, ResourceContainer {
     }
 
     @Override
-    public synchronized int empty() {
-        return load.empty();
-    }
-
-    @Override
     public synchronized int getResourceCount() {
         return load.getResourceCount();
     }
