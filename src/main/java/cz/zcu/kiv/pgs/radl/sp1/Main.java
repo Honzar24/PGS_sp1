@@ -26,7 +26,7 @@ public final class Main {
     }
 
     public static void main(String[] args) {
-        System.out.println("Arguments: " + Arrays.toString(args));
+
         HashMap<String, Integer> arguments = new HashMap<>();
         for (int i = 0; i < args.length; i++) {
             arguments.put(args[i], i);
@@ -34,6 +34,7 @@ public final class Main {
         String[] required = {"-i", "-o", "-cWorker", "-tWorker", "-capLorry", "-tLorry", "-capFerry"};
         for (String s : required) {
             if (!arguments.containsKey(s)) {
+                System.out.println("Arguments: " + Arrays.toString(args));
                 System.out.printf("Missing parameter:%s please run program again with parameters: %s%n", s, HELP);
                 return;
             }
@@ -51,6 +52,8 @@ public final class Main {
         System.setProperty("logFilename", outputFilename);
         System.setProperty("log4j.configurationFile", "log_config.xml");
         logger = LogManager.getLogger(Main.class);
+
+        logger.info("Arguments: " + Arrays.toString(args));
 
         Ferry.create(ferryCapacity / lorryCapacity);
         Lorry.setMaxTime(maxTimeLorry);

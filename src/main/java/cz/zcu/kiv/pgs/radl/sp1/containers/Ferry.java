@@ -6,6 +6,9 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.CyclicBarrier;
 
+/**
+ * Singleton
+ */
 public final class Ferry implements Destination {
 
     public static final long S = Main.S;
@@ -27,10 +30,8 @@ public final class Ferry implements Destination {
         startOfLoading = System.nanoTime();
     }
 
-    public static void create(int numberOfLorries)
-    {
-        if (instance != null)
-        {
+    public static void create(int numberOfLorries) {
+        if (instance != null) {
             throw new RuntimeException("Singleton create cannot be called multiple times");
         }
         instance = new Ferry(numberOfLorries);

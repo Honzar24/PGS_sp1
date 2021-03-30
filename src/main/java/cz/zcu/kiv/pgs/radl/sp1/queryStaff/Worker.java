@@ -28,7 +28,7 @@ public class Worker implements Runnable, ResourceContainer {
         this.maxMiningTime = maxMiningTime;
         this.chief = chief;
         load = new SaveResourceContainer(Integer.MAX_VALUE, String.format("Worker %d backpack", instanceNumber));
-        LOGGER.trace(String.format("New %s created with %d max mining time", getName(), maxMiningTime));
+        LOGGER.trace(String.format("New %s created with %d max mining time", this.getName(), maxMiningTime));
     }
 
     public Worker(Chief chief) {
@@ -47,15 +47,19 @@ public class Worker implements Runnable, ResourceContainer {
             LOGGER.trace(String.format("%s received %s to mine.", getName(), block));
             mineBlock(block);
             resourceMined += load.getResourceCount();
-            while (!load.isEmpty()) {
-                Lorry lorry = chief.getLorryInQuery();
-                if (!lorry.isFull()) {
-                    lorry.transfer(this, 1);
-                }
-            }
+            loadLorry();
         }
         chief.shiftEnd(this, resourceMined);
         LOGGER.debug(String.format("%s done mined %d resources", getName(), resourceMined));
+    }
+
+    private void loadLorry() {
+        while (!load.isEmpty()) {
+            Lorry lorry = chief.getLorryInQuery();
+            if (!lorry.isFull()) {
+                lorry.transfer(this, 1);
+            }
+        }
     }
 
     private void mineBlock(Block block) {
