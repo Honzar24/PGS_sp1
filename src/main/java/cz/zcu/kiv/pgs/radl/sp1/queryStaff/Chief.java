@@ -4,6 +4,7 @@ package cz.zcu.kiv.pgs.radl.sp1.queryStaff;
 import cz.zcu.kiv.pgs.radl.sp1.Main;
 import cz.zcu.kiv.pgs.radl.sp1.containers.Ferry;
 import cz.zcu.kiv.pgs.radl.sp1.containers.Lorry;
+import cz.zcu.kiv.pgs.radl.sp1.containers.ResourceContainer;
 import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
@@ -20,17 +21,21 @@ public class Chief {
 
     private final Queue<Block> blocks;
     private final Query query;
-    private Lorry lorryInQuery;
     private final ExecutorService lorries;
     private final ExecutorService workers;
     private final List<WorkerProductivity> workersProductivity;
+    private final ResourceContainer endDestinations;
 
-    public Chief(int numberOfWorkers, Query query) {
+    private Lorry lorryInQuery;
+
+
+    public Chief(int numberOfWorkers, Query query, ResourceContainer endDestination) {
         blocks = new LinkedList<>();
         lorries = Executors.newFixedThreadPool(Integer.MAX_VALUE);
         workers = Executors.newFixedThreadPool(numberOfWorkers);
         workersProductivity = new LinkedList<>();
         this.query = query;
+        this.endDestinations = endDestination;
         blocks.addAll(parseMap(this.query.getMap()));
         int resourceCount = blocks.stream().mapToInt(Block::getBlockSize).reduce(0, Integer::sum);
         LOGGER.info(String.format("Found %d resources in %d blocks", resourceCount, blocks.size()));
@@ -66,7 +71,7 @@ public class Chief {
 
     public final synchronized void prepareLorry() {
         LOGGER.trace("Preparing new lorry");
-        lorryInQuery = new Lorry(query, Ferry.getInstance());
+        lorryInQuery = new Lorry(query, Ferry.getInstance(), endDestinations);
         lorries.execute(lorryInQuery);
     }
 

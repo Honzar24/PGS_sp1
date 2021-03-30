@@ -1,8 +1,8 @@
 package cz.zcu.kiv.pgs.radl.sp1.containers;
 
-import cz.zcu.kiv.pgs.radl.sp1.HasName;
+import cz.zcu.kiv.pgs.radl.sp1.Destination;
 
-public interface ResourceContainer extends HasName {
+public interface ResourceContainer extends Destination {
 
     void add(int count);
 

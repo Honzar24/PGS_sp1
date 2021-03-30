@@ -6,7 +6,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.CyclicBarrier;
 
-public final class Ferry implements Destination, ResourceContainer {
+public final class Ferry implements Destination {
 
     public static final long S = Main.S;
     private static final Logger LOGGER = Main.logger;
@@ -14,8 +14,6 @@ public final class Ferry implements Destination, ResourceContainer {
     private static Ferry instance;
 
     private final CyclicBarrier barrier;
-    //this simulates warehouse on other side of river
-    private final SaveResourceContainer storage;
     private long startOfLoading;
 
     private Ferry(int numberOfLorries) {
@@ -25,7 +23,6 @@ public final class Ferry implements Destination, ResourceContainer {
             startOfLoading = end;
             LOGGER.info(String.format("%s is taking a trip after %d s", getName(), waitingTime / S));
         };
-        storage = new SaveResourceContainer(Integer.MAX_VALUE, "Storage");
         barrier = new CyclicBarrier(numberOfLorries, ferry_full);
         startOfLoading = System.nanoTime();
     }
@@ -56,35 +53,5 @@ public final class Ferry implements Destination, ResourceContainer {
 
     public CyclicBarrier getBarrier() {
         return barrier;
-    }
-
-    @Override
-    public void add(int count) {
-        storage.add(count);
-    }
-
-    @Override
-    public int remove(int count) {
-        return storage.remove(count);
-    }
-
-    @Override
-    public int getResourceCount() {
-        return storage.getResourceCount();
-    }
-
-    @Override
-    public boolean isFull() {
-        return storage.isFull();
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return storage.isEmpty();
-    }
-
-    @Override
-    public boolean transfer(ResourceContainer from, int amount) {
-        return storage.transfer(from, amount);
     }
 }

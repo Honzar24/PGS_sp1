@@ -22,17 +22,23 @@ public class Lorry implements Runnable, ResourceContainer {
     private static int numberInstances;
 
     private final int instanceNumber;
-    private final Destination UnloadingSpot;
     private final Destination LoadingSpot;
+    private final Destination RoadPoint;
+    private final ResourceContainer UnloadingSpot;
+
     private final SaveResourceContainer load;
 
     private Destination currentLocation;
+    /**
+     * flag that signal this lorry is last loaded by workers and can force barrier
+     */
     private boolean canLoadAndNotLast;
 
 
-    public Lorry(Destination loadingSpot, Destination unloadingSpot, int capacity) {
+    public Lorry(Destination loadingSpot, Destination roadPoint, ResourceContainer unloadingSpot, int capacity) {
         currentLocation = loadingSpot;
         LoadingSpot = loadingSpot;
+        RoadPoint = roadPoint;
         UnloadingSpot = unloadingSpot;
         instanceNumber = ++numberInstances;
         load = new SaveResourceContainer(capacity, String.format(getName() + " cargo", instanceNumber));
@@ -40,8 +46,8 @@ public class Lorry implements Runnable, ResourceContainer {
         LOGGER.trace(String.format("New %s created", getName()));
     }
 
-    public Lorry(Destination loadingSpot, Destination unloadingSpot) {
-        this(loadingSpot, unloadingSpot, capacity);
+    public Lorry(Destination loadingSpot, Destination roadPoint, ResourceContainer unloadingSpot) {
+        this(loadingSpot, roadPoint, unloadingSpot, capacity);
     }
 
     public static void setCapacity(int capacity) {
@@ -51,9 +57,10 @@ public class Lorry implements Runnable, ResourceContainer {
     @Override
     public void run() {
         loading();
-        tripTo(UnloadingSpot);
+        tripTo(RoadPoint);
         ferryRide(Ferry.getInstance());
-        tripTo(LoadingSpot);
+        tripTo(UnloadingSpot);
+        UnloadingSpot.transfer(load, getResourceCount());
         LOGGER.debug(getName() + " done");
     }
 
@@ -80,21 +87,20 @@ public class Lorry implements Runnable, ResourceContainer {
             Ferry.getInstance().getBarrier().reset();
         }
         LOGGER.debug(String.format("%s leaving ferry", getName()));
-        ferry.transfer(load, load.getResourceCount());
     }
 
 
     private void tripTo(Destination destination) {
         long start = System.nanoTime();
         long travelTime = (RD.nextInt(maxTime) + 1) * S;
-        LOGGER.debug(String.format("%s is in %s going to %s estimated travel time %d s", getName(), currentLocation, destination, travelTime / S));
+        LOGGER.debug(String.format("%s is in %s going to %s estimated travel time %d s", getName(), currentLocation.getName(), destination.getName(), travelTime / S));
         saveSleepTo(start + travelTime);
         setCurrentLocation(destination, (System.nanoTime() - start) / S);
     }
 
     public void setCurrentLocation(Destination newLocation, long travelTime) {
         this.currentLocation = newLocation;
-        LOGGER.info(String.format("%s is on new location %s travel time %d s", getName(), currentLocation, travelTime));
+        LOGGER.info(String.format("%s is on new location %s travel time %d s", getName(), currentLocation.getName(), travelTime));
     }
 
     private synchronized void saveSleepTo(long end) {
@@ -120,7 +126,7 @@ public class Lorry implements Runnable, ResourceContainer {
             }
         }
         long end = System.nanoTime() - startOfLoading;
-        LOGGER.info(String.format("%s is loaded with %d after %d s", getName(), load.getResourceCount(), end / S));
+        LOGGER.info(String.format("%s is loaded with %d resources after %d s", getName(), load.getResourceCount(), end / S));
     }
 
     public static void setMaxTime(int maxTime) {
@@ -155,7 +161,6 @@ public class Lorry implements Runnable, ResourceContainer {
     @Override
     public synchronized boolean transfer(ResourceContainer from, int amount) {
         if (load.transfer(from, amount)) {
-
             saveSleepTo(System.nanoTime() + S);
             notifyAll();
             return true;
@@ -177,7 +182,9 @@ public class Lorry implements Runnable, ResourceContainer {
      * This methode is called for last lorry this lorry have special role to break barrier
      */
     public synchronized void forceRide() {
-        LOGGER.info(getName() + " is forced to stop loading");
+        if (currentLocation.equals(LoadingSpot)) {
+            LOGGER.info(getName() + " is forced to stop loading");
+        }
         canLoadAndNotLast = false;
         notifyAll();
     }
