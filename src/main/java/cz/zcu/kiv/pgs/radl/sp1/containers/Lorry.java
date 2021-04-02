@@ -7,8 +7,6 @@ import org.apache.logging.log4j.Logger;
 import java.util.Random;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class Lorry implements Runnable, ResourceContainer {
 
@@ -16,108 +14,150 @@ public class Lorry implements Runnable, ResourceContainer {
 
     private static final Random RD = new Random();
     private static final Logger LOGGER = Main.logger;
-
-    private static int maxTime;
-    private static int capacity;
-    private static int numberInstances;
-
-    private final int instanceNumber;
-    private final Destination LoadingSpot;
-    private final Destination RoadPoint;
-    private final ResourceContainer UnloadingSpot;
-
-    private final SaveResourceContainer load;
-
-    private Destination currentLocation;
     /**
-     * flag that signal this lorry is last loaded by workers and can force barrier
+     * upper bound of travel time used if is not filled in constructor
      */
-    private boolean canLoadAndNotLast;
+    private static int defMaxTravelTime;
+    /**
+     * capacity used if capacity is not filled in constructor
+     */
+    private static int defCapacity;
+    /**
+     * number of lorries from start of program
+     */
+    private static int numberInstances;
+    /**
+     * number of lorry in program
+     */
+    private final int instanceNumber;
+    /**
+     * upper bound of maxim ms to travel to some location
+     */
+    private final int maxTravelTime;
+    /**
+     * Lorries route from loading point to ferry minimum size in 2
+     */
+    private final Destination[] route;
+    /**
+     * Location of storage facility
+     */
+    private final ResourceContainer UnloadingSpot;
+    /**
+     * inventory of lorry
+     */
+    private final SaveResourceContainer load;
+    /**
+     * current location of lorry
+     */
+    private Destination currentLocation;
 
-
-    public Lorry(Destination loadingSpot, Destination roadPoint, ResourceContainer unloadingSpot, int capacity) {
-        currentLocation = loadingSpot;
-        LoadingSpot = loadingSpot;
-        RoadPoint = roadPoint;
+    /**
+     * Lorry with route with locations minimum size is 2 first is start location an d last is ferry
+     *
+     * @param unloadingSpot end point of lorry and resource storage
+     * @param capacity      capacity of lorry in number of resources
+     * @param maxTravelTime upper bound of maxim ms to travel to some location
+     * @param route         minimum size is 2 first is start location an d last is ferry
+     */
+    public Lorry(ResourceContainer unloadingSpot, int capacity, int maxTravelTime, Destination... route) {
         UnloadingSpot = unloadingSpot;
         instanceNumber = ++numberInstances;
+        this.route = route;
+        this.currentLocation = route[0];
+        this.maxTravelTime = maxTravelTime;
         load = new SaveResourceContainer(capacity, String.format(getName() + " cargo", instanceNumber));
-        canLoadAndNotLast = true;
         LOGGER.trace(String.format("New %s created", getName()));
     }
 
-    public Lorry(Destination loadingSpot, Destination roadPoint, ResourceContainer unloadingSpot) {
-        this(loadingSpot, roadPoint, unloadingSpot, capacity);
+    /**
+     * @param loadingSpot   Start location of lorry
+     * @param ferryLocation Location of ferry
+     * @param unloadingSpot Location of storage and end point of lorry
+     */
+    public Lorry(Destination loadingSpot, Destination ferryLocation, ResourceContainer unloadingSpot) {
+        this(unloadingSpot, defCapacity, defMaxTravelTime, loadingSpot, ferryLocation);
     }
 
-    public static void setCapacity(int capacity) {
-        Lorry.capacity = capacity;
+    public static void setDefCapacity(int defCapacity) {
+        Lorry.defCapacity = defCapacity;
+    }
+
+    public static void setDefMaxTravelTime(int defMaxTravelTime) {
+        Lorry.defMaxTravelTime = defMaxTravelTime;
     }
 
     @Override
     public void run() {
-        loading();
-        tripTo(RoadPoint);
+        load();
+        for (int i = 1; i < route.length; i++) {
+            tripTo(route[i]);
+        }
         ferryRide(Ferry.getInstance());
         tripTo(UnloadingSpot);
         UnloadingSpot.transfer(load, getResourceCount());
         LOGGER.debug(getName() + " done");
     }
 
+    /**
+     * Join waiting queue at ferry
+     *
+     * @param ferry
+     */
     private void ferryRide(Ferry ferry) {
         try {
             CyclicBarrier barrier = ferry.getBarrier();
             LOGGER.debug(String.format("%s arrived at ferry there is %d/%d lorries waiting", getName(), barrier.getNumberWaiting(), barrier.getParties()));
-            boolean last = (barrier.getNumberWaiting() + 1) == barrier.getParties();
-            if (last || canLoadAndNotLast) {
-                barrier.await();
-            } else {
-                LOGGER.info(String.format("Forced %s giving chance(%d s) too others lorries to finish their trips.", getName(), maxTime));
-                //Ensures that forced lorry is last lorry at barrier
-                saveSleepTo(System.nanoTime() + maxTime * S);
-                barrier.await(1000, TimeUnit.MILLISECONDS);
-            }
+            barrier.await();
         } catch (InterruptedException e) {
             LOGGER.trace("unexpected interruption");
             ferryRide(ferry);
         } catch (BrokenBarrierException e) {
-            LOGGER.info("Barrier broke by last lorry hopefully. {} released", getName());
-        } catch (TimeoutException e) {
-            LOGGER.info("Forced lorry waited too long. Breaks barrier to prevent deadlock");
-            Ferry.getInstance().getBarrier().reset();
+            LOGGER.info("Barrier broke for {}", getName());
         }
         LOGGER.debug(String.format("%s leaving ferry", getName()));
     }
 
-
+    /**
+     * Change currentLocation to new place rolls for travel time
+     *
+     * @param destination new destination where lorry should by
+     */
     private void tripTo(Destination destination) {
         long start = System.nanoTime();
-        long travelTime = (RD.nextInt(maxTime) + 1) * S;
-        LOGGER.debug(String.format("%s is in %s going to %s estimated travel time %d s", getName(), currentLocation.getName(), destination.getName(), travelTime / S));
+        long travelTime = (RD.nextInt(maxTravelTime) + 1) * S;
+        LOGGER.debug(String.format("%s is in %s going to %s estimated travel time %d ms", getName(), currentLocation.getName(), destination.getName(), travelTime / S));
         saveSleepTo(start + travelTime);
         setCurrentLocation(destination, (System.nanoTime() - start) / S);
     }
 
     public void setCurrentLocation(Destination newLocation, long travelTime) {
         this.currentLocation = newLocation;
-        LOGGER.info(String.format("%s is on new location %s travel time %d s", getName(), currentLocation.getName(), travelTime));
+        LOGGER.info(String.format("%s is on new location %s travel time %d ms", getName(), currentLocation.getName(), travelTime));
     }
 
+    /**
+     * Busy waiting to end time stamp
+     *
+     * @param end timestamp in nanos
+     */
     private synchronized void saveSleepTo(long end) {
         do {
             try {
                 //noinspection BusyWait
-                Thread.sleep(100);
+                Thread.sleep(1);
             } catch (InterruptedException e) {
                 LOGGER.trace("unexpected interruption");
             }
         } while (System.nanoTime() < end);
     }
 
-    private void loading() {
+    /**
+     * Loading loop if lorry is not full then there is noting to do
+     */
+    private void load() {
         long startOfLoading = System.nanoTime();
         synchronized (this) {
-            while ((!load.isFull()) && canLoadAndNotLast) {
+            while ((!load.isFull())) {
                 try {
                     wait();
                 } catch (InterruptedException e) {
@@ -126,11 +166,7 @@ public class Lorry implements Runnable, ResourceContainer {
             }
         }
         long end = System.nanoTime() - startOfLoading;
-        LOGGER.info(String.format("%s is loaded with %d resources after %d s", getName(), load.getResourceCount(), end / S));
-    }
-
-    public static void setMaxTime(int maxTime) {
-        Lorry.maxTime = maxTime;
+        LOGGER.info(String.format("%s is loaded with %d resources after %d ms", getName(), load.getResourceCount(), end / S));
     }
 
     @Override
@@ -161,7 +197,7 @@ public class Lorry implements Runnable, ResourceContainer {
     @Override
     public synchronized boolean transfer(ResourceContainer from, int amount) {
         if (load.transfer(from, amount)) {
-            saveSleepTo(System.nanoTime() + S);
+            saveSleepTo(System.nanoTime() + S * 1000);
             notifyAll();
             return true;
         }
@@ -176,16 +212,5 @@ public class Lorry implements Runnable, ResourceContainer {
     @Override
     public final String getName() {
         return String.format("Lorry %d", instanceNumber);
-    }
-
-    /**
-     * This methode is called for last lorry this lorry have special role to break barrier
-     */
-    public synchronized void forceRide() {
-        if (currentLocation.equals(LoadingSpot)) {
-            LOGGER.info(getName() + " is forced to stop loading");
-        }
-        canLoadAndNotLast = false;
-        notifyAll();
     }
 }

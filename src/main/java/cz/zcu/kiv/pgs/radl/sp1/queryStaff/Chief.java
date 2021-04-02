@@ -18,17 +18,42 @@ import java.util.regex.Pattern;
 
 public class Chief {
     public static final Logger LOGGER = Main.logger;
-
+    /**
+     * Blocks with resources
+     */
     private final Queue<Block> blocks;
+    /**
+     * Location where workers is ask to mine and lorry starts
+     */
     private final Query query;
+    /**
+     * Lorry's threads
+     */
     private final ExecutorService lorries;
+    /**
+     * Worker's threads
+     */
     private final ExecutorService workers;
+    /**
+     * After worker end his shift he is asked to fill form about his productivity in query
+     */
     private final List<WorkerProductivity> workersProductivity;
+    /**
+     * Where mined resources should be stored
+     */
     private final ResourceContainer endDestinations;
-
+    /**
+     * Last lorry that is or was in query
+     */
     private Lorry lorryInQuery;
 
-
+    /**
+     * Prepare chief
+     *
+     * @param numberOfWorkers number of concurrent workers that mines resources
+     * @param query           location where workers is ask to mine and lorry starts
+     * @param endDestination  storage where mined resources should be stored
+     */
     public Chief(int numberOfWorkers, Query query, ResourceContainer endDestination) {
         blocks = new LinkedList<>();
         lorries = Executors.newFixedThreadPool(Integer.MAX_VALUE);
@@ -46,6 +71,12 @@ public class Chief {
 
     }
 
+    /**
+     * Parse lines to list of blocks to be mined
+     *
+     * @param lines
+     * @return
+     */
     public static List<Block> parseMap(String... lines) {
         List<Block> blocks = new ArrayList<>();
         for (String line : lines) {
@@ -58,10 +89,22 @@ public class Chief {
         return blocks;
     }
 
+    /**
+     * Parse text to block of correct size
+     *
+     * @param s text that consist a block
+     * @return new block found in query
+     */
     private static Block parseBlock(String s) {
         return new Block(s.trim().length());
     }
 
+    /**
+     * Worker ask chief where they should empty their inventory
+     * if lorry is marked as full then first prepare a new
+     *
+     * @return
+     */
     public synchronized Lorry getLorryInQuery() {
         if (lorryInQuery.isFull()) {
             prepareLorry();
@@ -69,6 +112,9 @@ public class Chief {
         return lorryInQuery;
     }
 
+    /**
+     * Chief prepare new lorry in query for workers
+     */
     public final synchronized void prepareLorry() {
         LOGGER.trace("Preparing new lorry");
         lorryInQuery = new Lorry(query, Ferry.getInstance(), endDestinations);
@@ -99,9 +145,6 @@ public class Chief {
      */
     public void waitUntilWorkDone() {
         waitUntilDone(workers);
-        if (lorryInQuery != null) {
-            lorryInQuery.forceRide();
-        }
         waitUntilDone(lorries);
         LOGGER.info("Job done");
     }
@@ -133,6 +176,9 @@ public class Chief {
         workersProductivity.add(new WorkerProductivity(worker, resourceMined));
     }
 
+    /**
+     * Prints log productivity in log
+     */
     public void logProductivity() {
         WorkerProductivity[] array = workersProductivity.stream().sorted().toArray(WorkerProductivity[]::new);
         LOGGER.info(String.format("Worker productivity list of %d workers", array.length));

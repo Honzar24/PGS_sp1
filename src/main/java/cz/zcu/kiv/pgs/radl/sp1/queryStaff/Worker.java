@@ -12,15 +12,28 @@ public class Worker implements Runnable, ResourceContainer {
 
     public static final Logger LOGGER = Main.logger;
     public static final long S = Main.S;
-
     private static final Random RD = new Random();
 
     private static int numberInstances;
+    /**
+     * upper bound of maxim ms to mine one resource from block if not filled in constructor
+     */
     private static int defaultMiningTime;
-
+    /**
+     * number of worker in program
+     */
     public final int instanceNumber;
+    /**
+     * upper bound of maxim ms to mine one resource from block
+     */
     public final int maxMiningTime;
+    /**
+     * chief of this worker
+     */
     public final Chief chief;
+    /**
+     * Workers "unlimited" backpack
+     */
     private final ResourceContainer load;
 
     public Worker(Chief chief, int maxMiningTime) {
@@ -35,9 +48,6 @@ public class Worker implements Runnable, ResourceContainer {
         this(chief, defaultMiningTime);
     }
 
-    public static void setDefaultMiningTime(int defaultMiningTime) {
-        Worker.defaultMiningTime = defaultMiningTime;
-    }
 
     @Override
     public void run() {
@@ -53,6 +63,13 @@ public class Worker implements Runnable, ResourceContainer {
         LOGGER.debug(String.format("%s done mined %d resources", getName(), resourceMined));
     }
 
+    public static void setDefaultMiningTime(int defaultMiningTime) {
+        Worker.defaultMiningTime = defaultMiningTime;
+    }
+
+    /**
+     * Load lorry with one resource from backpack
+     */
     private void loadLorry() {
         while (!load.isEmpty()) {
             Lorry lorry = chief.getLorryInQuery();
@@ -62,26 +79,41 @@ public class Worker implements Runnable, ResourceContainer {
         }
     }
 
+    /**
+     * Mine block received form chief
+     *
+     * @param block
+     */
     private void mineBlock(Block block) {
         long start = System.nanoTime();
         for (int i = 0; i < block.getBlockSize(); i++) {
             long resourceStart = System.nanoTime();
             mineResource(block);
             long resourceMineTime = System.nanoTime() - resourceStart;
-            LOGGER.info(String.format("%s mined one resource in %d s", getName(), resourceMineTime / S));
+            LOGGER.info(String.format("%s mined one resource in %d ms", getName(), resourceMineTime / S));
         }
         long mineTime = System.nanoTime() - start;
-        LOGGER.info(String.format("%s mined %s with size %d in %d s", getName(), block.getName(), block.getBlockSize(), mineTime / S));
+        LOGGER.info(String.format("%s mined %s with size %d in %d ms", getName(), block.getName(), block.getBlockSize(), mineTime / S));
     }
 
+    /**
+     * Mine one resource form block
+     *
+     * @param block
+     */
     private void mineResource(Block block) {
         long start = System.nanoTime();
         long miningTime = (RD.nextInt(maxMiningTime - 1) + 1) * S;
-        LOGGER.trace(String.format("%s is mining resource estimated mining time %d s", getName(), miningTime / S));
+        LOGGER.trace(String.format("%s is mining resource estimated mining time %d ms", getName(), miningTime / S));
         saveSleepTo(start + miningTime);
         load.transfer(block, 1);
     }
 
+    /**
+     * Busy waiting to end time stamp
+     *
+     * @param end timestamp in nanos
+     */
     private synchronized void saveSleepTo(long end) {
         do {
             try {

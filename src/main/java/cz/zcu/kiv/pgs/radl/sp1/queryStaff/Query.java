@@ -4,7 +4,9 @@ import cz.zcu.kiv.pgs.radl.sp1.Destination;
 import cz.zcu.kiv.pgs.radl.sp1.FileLoaderUtils;
 
 public class Query implements Destination {
-
+    /**
+     * Filename of map file
+     */
     private final String mapFile;
 
     public Query(String inputFilename) {

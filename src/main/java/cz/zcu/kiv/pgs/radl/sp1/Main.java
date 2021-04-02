@@ -14,12 +14,14 @@ import java.util.HashMap;
 
 public final class Main {
     /**
-     * Constant to get seconds out of nanoTime
+     * Constant to get ms out of nanoTime
      */
-    public static final long S = 1_000_000_000L;
+    public static final long S = 1_000_000L;
 
     private static final String HELP = "-i <vstupni soubor> -o <vystupni soubor> -cWorker <int> -tWorker <int> -capLorry <int> -tLorry <int> -capFerry <int>";
-
+    /**
+     * Log4j logger instance
+     */
     public static Logger logger;
 
     private Main() {
@@ -55,9 +57,9 @@ public final class Main {
 
         logger.info("Arguments: " + Arrays.toString(args));
 
-        Ferry.create(ferryCapacity / lorryCapacity);
-        Lorry.setMaxTime(maxTimeLorry);
-        Lorry.setCapacity(lorryCapacity);
+        Ferry.create(ferryCapacity);
+        Lorry.setDefMaxTravelTime(maxTimeLorry);
+        Lorry.setDefCapacity(lorryCapacity);
         Worker.setDefaultMiningTime(maxTimeWorker);
 
         Warehouse warehouse = new Warehouse();

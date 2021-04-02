@@ -16,6 +16,13 @@ public final class FileLoaderUtils {
     private FileLoaderUtils() {
     }
 
+    /**
+     * Transform filename to lines of file if this file exist
+     * Firstly try load file from resources if this file not exist there then uses current location
+     *
+     * @param filename filename
+     * @return if can not find file returns empty array of lines otherwise array of lines separated by system endline separator
+     */
     public static String[] loadFile(String filename) {
         try {
             LOGGER.trace("Loading " + filename);

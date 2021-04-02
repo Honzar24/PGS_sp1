@@ -5,9 +5,17 @@ import org.apache.logging.log4j.Logger;
 
 public class SaveResourceContainer implements ResourceContainer {
     public static final Logger LOGGER = Main.logger;
+    /**
+     * Capacity of resources
+     */
     public final int capacity;
+    /**
+     * Name of container
+     */
     private final String name;
-
+    /**
+     * Number of resources stores in inventory
+     */
     private volatile int resourceCount;
 
     public SaveResourceContainer(int capacity, String name) {
@@ -24,7 +32,6 @@ public class SaveResourceContainer implements ResourceContainer {
     public synchronized void add(int count)
     {
         isPositive(count);
-
         if ((resourceCount + count) <= capacity)
         {
             resourceCount += count;
@@ -55,22 +62,25 @@ public class SaveResourceContainer implements ResourceContainer {
         throw new IllegalArgumentException(String.format(format,count,resourceCount));
     }
 
+
     @Override
-    public synchronized int getResourceCount() {
-        return resourceCount;
+    public synchronized boolean isFull() {
+        return resourceCount == capacity;
     }
 
     @Override
-    public synchronized boolean isFull()
-    {
-        return resourceCount == capacity;
-    }
-    @Override
-    public synchronized boolean isEmpty()
-    {
+    public synchronized boolean isEmpty() {
         return resourceCount == 0;
     }
 
+    /**
+     * Save way to transfer resources between to containers.
+     * If operation can not be done successfully then system is rollback to situation before transfer
+     *
+     * @param from   Container where resource should be taken
+     * @param amount of resources
+     * @return true if successful transfer
+     */
     @Override
     public synchronized boolean transfer(ResourceContainer from, int amount) {
         int removed = 0;
@@ -84,6 +94,11 @@ public class SaveResourceContainer implements ResourceContainer {
             from.add(removed);
         }
         return false;
+    }
+
+    @Override
+    public synchronized int getResourceCount() {
+        return resourceCount;
     }
 
     @Override
