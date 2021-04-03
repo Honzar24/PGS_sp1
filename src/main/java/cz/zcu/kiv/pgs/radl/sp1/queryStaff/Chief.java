@@ -124,10 +124,14 @@ public class Chief {
     /**
      * Method for workers
      *
-     * @return block that need to be mined.
+     * @return block that need to be mined. Null if no blocks are present
      */
     public synchronized Block giveWork() {
-        return blocks.remove();
+        if (!blocks.isEmpty()) {
+            return blocks.remove();
+        } else {
+            return null;
+        }
     }
 
     private void runWorkers(int numberOfWorkers) {
@@ -136,7 +140,7 @@ public class Chief {
         }
     }
 
-    public synchronized boolean hasWork() {
+    public boolean hasWork() {
         return !blocks.isEmpty();
     }
 
@@ -145,6 +149,7 @@ public class Chief {
      */
     public void waitUntilWorkDone() {
         waitUntilDone(workers);
+        lorryInQuery.stopLoad();
         waitUntilDone(lorries);
         LOGGER.info("Job done");
     }

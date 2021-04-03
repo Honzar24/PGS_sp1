@@ -54,6 +54,10 @@ public class Worker implements Runnable, ResourceContainer {
         int resourceMined = 0;
         while (chief.hasWork()) {
             Block block = chief.giveWork();
+            if (block == null) {
+                //no block received
+                continue;
+            }
             LOGGER.trace(String.format("%s received %s to mine.", getName(), block));
             mineBlock(block);
             resourceMined += load.getResourceCount();

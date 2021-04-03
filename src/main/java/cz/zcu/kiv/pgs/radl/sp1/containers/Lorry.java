@@ -15,6 +15,10 @@ public class Lorry implements Runnable, ResourceContainer {
     private static final Random RD = new Random();
     private static final Logger LOGGER = Main.logger;
     /**
+     * Number of ms waiting after load
+     */
+    public static final int LOADMS = 100;
+    /**
      * upper bound of travel time used if is not filled in constructor
      */
     private static int defMaxTravelTime;
@@ -50,20 +54,24 @@ public class Lorry implements Runnable, ResourceContainer {
      * current location of lorry
      */
     private Destination currentLocation;
+    /**
+     * false-lorry stop loading phase before full
+     */
+    private boolean canLoad = true;
 
     /**
-     * Lorry with route with locations minimum size is 2 first is start location an d last is ferry
+     * Lorry with routeToFerry with locations minimum size is 2 first is start location an d last is ferry
      *
      * @param unloadingSpot end point of lorry and resource storage
      * @param capacity      capacity of lorry in number of resources
      * @param maxTravelTime upper bound of maxim ms to travel to some location
-     * @param route         minimum size is 2 first is start location an d last is ferry
+     * @param routeToFerry  minimum size is 2 first is start location an d last is ferry
      */
-    public Lorry(ResourceContainer unloadingSpot, int capacity, int maxTravelTime, Destination... route) {
+    public Lorry(ResourceContainer unloadingSpot, int capacity, int maxTravelTime, Destination... routeToFerry) {
         UnloadingSpot = unloadingSpot;
         instanceNumber = ++numberInstances;
-        this.route = route;
-        this.currentLocation = route[0];
+        this.route = routeToFerry;
+        this.currentLocation = routeToFerry[0];
         this.maxTravelTime = maxTravelTime;
         load = new SaveResourceContainer(capacity, String.format(getName() + " cargo", instanceNumber));
         LOGGER.trace(String.format("New %s created", getName()));
@@ -157,7 +165,7 @@ public class Lorry implements Runnable, ResourceContainer {
     private void load() {
         long startOfLoading = System.nanoTime();
         synchronized (this) {
-            while ((!load.isFull())) {
+            while ((!load.isFull()) && canLoad) {
                 try {
                     wait();
                 } catch (InterruptedException e) {
@@ -167,6 +175,17 @@ public class Lorry implements Runnable, ResourceContainer {
         }
         long end = System.nanoTime() - startOfLoading;
         LOGGER.info(String.format("%s is loaded with %d resources after %d ms", getName(), load.getResourceCount(), end / S));
+    }
+
+    /**
+     * Force lorry to stop load and take a trip
+     */
+    public void stopLoad() {
+        synchronized (this) {
+            LOGGER.debug(String.format("%s force stop loading", getName()));
+            canLoad = false;
+            notifyAll();
+        }
     }
 
     @Override
@@ -197,7 +216,7 @@ public class Lorry implements Runnable, ResourceContainer {
     @Override
     public synchronized boolean transfer(ResourceContainer from, int amount) {
         if (load.transfer(from, amount)) {
-            saveSleepTo(System.nanoTime() + S * 1000);
+            saveSleepTo(System.nanoTime() + S * LOADMS);
             notifyAll();
             return true;
         }
