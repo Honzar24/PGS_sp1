@@ -215,8 +215,9 @@ public class Lorry implements Runnable, ResourceContainer {
 
     @Override
     public synchronized boolean transfer(ResourceContainer from, int amount) {
+        long end = System.nanoTime() + S * LOADMS;
         if (load.transfer(from, amount)) {
-            saveSleepTo(System.nanoTime() + S * LOADMS);
+            saveSleepTo(end);
             notifyAll();
             return true;
         }
