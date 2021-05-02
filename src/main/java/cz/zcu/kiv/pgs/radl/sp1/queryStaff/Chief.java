@@ -80,7 +80,7 @@ public class Chief {
     public static List<Block> parseMap(String... lines) {
         List<Block> blocks = new ArrayList<>();
         for (String line : lines) {
-            Pattern pattern = Pattern.compile("x+");
+            Pattern pattern = Pattern.compile("[x|X]+");
             Matcher matcher = pattern.matcher(line);
             while (matcher.find()) {
                 blocks.add(parseBlock(matcher.group()));

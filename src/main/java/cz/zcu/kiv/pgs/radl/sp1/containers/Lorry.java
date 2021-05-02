@@ -17,7 +17,7 @@ public class Lorry implements Runnable, ResourceContainer {
     /**
      * Number of ms waiting after load
      */
-    public static final int LOADMS = 1000;
+    public static final int LOADMS = 10;
     /**
      * upper bound of travel time used if is not filled in constructor
      */
